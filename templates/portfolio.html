@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}포트폴리오 - 주식 게임{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/portfolio.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{{ url_for('static', filename='js/common/socket.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/common/formatters.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/portfolio.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="portfolio-container">
+    <!-- 계좌 요약 섹션 -->
+    <h2 class="section-title">계좌 요약</h2>
+    <div class="summary-grid">
+        <div class="summary-card">
+            <i class="fas fa-wallet card-icon"></i>
+            <div class="card-content">
+                <h3>총 자산</h3>
+                <p class="value">{{ "{:,.0f}".format(total_assets) }}원</p>
+            </div>
+        </div>
+        <div class="summary-card">
+            <i class="fas fa-coins card-icon"></i>
+            <div class="card-content">
+                <h3>보유 현금</h3>
+                <p class="value">{{ "{:,.0f}".format(cash) }}원</p>
+            </div>
+        </div>
+        <div class="summary-card">
+            <i class="fas fa-chart-pie card-icon"></i>
+            <div class="card-content">
+                <h3>투자 자산</h3>
+                <p class="value">{{ "{:,.0f}".format(invested_amount) }}원</p>
+            </div>
+        </div>
+        <div class="summary-card">
+            <i class="fas fa-percentage card-icon"></i>
+            <div class="card-content">
+                <h3>총 수익률</h3>
+                <p class="value {% if total_return_rate > 0 %}positive{% elif total_return_rate < 0 %}negative{% endif %}">
+                    {{ "{:+.2f}".format(total_return_rate) }}%
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 보유 주식 섹션 -->
+    <h2 class="section-title">보유 주식</h2>
+    {% if holdings %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>종목명</th>
+                    <th>보유수량</th>
+                    <th>평균단가</th>
+                    <th>현재가</th>
+                    <th>평가금액</th>
+                    <th>수익률</th>
+                    <th>평가손익</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for holding in holdings %}
+                <tr>
+                    <td>{{ holding.stock_name }}</td>
+                    <td>{{ holding.quantity }}주</td>
+                    <td>{{ "{:,.0f}".format(holding.avg_price) }}원</td>
+                    <td>{{ "{:,.0f}".format(holding.current_price) }}원</td>
+                    <td>{{ "{:,.0f}".format(holding.total_value) }}원</td>
+                    <td class="{% if holding.return_rate > 0 %}positive{% elif holding.return_rate < 0 %}negative{% endif %}">
+                        {{ "{:+.2f}".format(holding.return_rate) }}%
+                    </td>
+                    <td class="{% if holding.profit_loss > 0 %}positive{% elif holding.profit_loss < 0 %}negative{% endif %}">
+                        {{ "{:+,.0f}".format(holding.profit_loss) }}원
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>보유중인 주식이 없습니다.</p>
+        <a href="{{ url_for('main.market') }}" class="btn btn-primary">거래하러 가기</a>
+    </div>
+    {% endif %}
+
+    <!-- 거래 내역 섹션 -->
+    <h2 class="section-title">거래 내역</h2>
+    {% if transactions %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>거래일시</th>
+                    <th>종목명</th>
+                    <th>거래유형</th>
+                    <th>거래수량</th>
+                    <th>거래단가</th>
+                    <th>거래금액</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                    <td>{{ transaction.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ transaction.stock_name }}</td>
+                    <td>
+                        <span class="transaction-type {{ transaction.transaction_type.lower() }}">
+                            {{ "매수" if transaction.transaction_type == "BUY" else "매도" }}
+                        </span>
+                    </td>
+                    <td>{{ transaction.quantity }}주</td>
+                    <td>{{ "{:,.0f}".format(transaction.price) }}원</td>
+                    <td>{{ "{:,.0f}".format(transaction.total_amount) }}원</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>거래 내역이 없습니다.</p>
+        <a href="{{ url_for('main.market') }}" class="btn btn-primary">거래하러 가기</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 
