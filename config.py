@@ -12,7 +12,7 @@ class Config:
 
     # 챗봇 설정
     OLLAMA_API_URL = os.environ.get('OLLAMA_API_URL', 'http://localhost:11434')
-    OLLAMA_MODEL = 'llama3.1:70b' # LLM 모델
+    OLLAMA_MODEL = 'llama3:8b' # LLM 모델
     num_ctx = 4096  # 컨텍스트 크기
 
     # 서버 안정성 관련 설정
