@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}오류 - StockSim{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <h1>오류가 발생했습니다</h1>
+    <p>{{ error }}</p>
+    <a href="{{ url_for('main.index') }}" class="btn btn-primary">홈으로 돌아가기</a>
+</div>
+{% endblock %}

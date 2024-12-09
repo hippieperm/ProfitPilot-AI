@@ -1,0 +1,894 @@
+import { socket, initializeSocket } from './common/socket.js';
+import { stocks, portfolio } from './common/socket.js';
+
+const app = {
+    selectedStock: null,
+    priceChart: null,
+    currentPrice: 0,
+    orderType: 'buy',
+    isInitialized: false,
+    historyCache: {},  // 주식별 히스토리 데이터 캐시
+
+    init: async function() {
+        if (this.isInitialized) {
+            console.log('App already initialized');
+            return;
+        }
+
+        // 현재 페이지가 market 페이지인지 확인
+        const priceChartElement = document.getElementById('priceChart');
+        if (!priceChartElement) {
+            console.log('Not on market page, skipping initialization');
+            return;
+        }
+
+        // Toast 초기화 대기
+        try {
+            await this.waitForToast();
+            console.log('Toast is loaded successfully');
+        } catch (error) {
+            console.error('Toast initialization failed:', error);
+            return;
+        }
+
+        try {
+            this.initChart();
+            this.initStyles();
+            this.setupEventListeners();
+            
+            // 소켓 초기화 및 연결
+            console.log('Initializing socket with app instance');
+            initializeSocket(this);
+            
+            this.isInitialized = true;
+            console.log('Market app initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize market app:', error);
+        }
+    },
+
+    waitForToast: function() {
+        return new Promise((resolve, reject) => {
+            if (window.Toast) {
+                resolve(window.Toast);
+                return;
+            }
+            
+            const checkToast = setInterval(() => {
+                if (window.Toast) {
+                    clearInterval(checkToast);
+                    resolve(window.Toast);
+                }
+            }, 100);
+            
+            // 10초 후 타임아웃
+            setTimeout(() => {
+                clearInterval(checkToast);
+                reject(new Error('Toast initialization timeout'));
+            }, 10000);
+        });
+    },
+
+    showNotification: async function(message, type) {
+        console.log('Showing notification:', message, type);
+        try {
+            const toast = await this.waitForToast();
+            if (toast) {
+                toast.show(message, type);
+            }
+        } catch (error) {
+            console.error('Error showing toast:', error);
+        }
+    },
+
+    handleTradeSuccess: function(response) {
+        console.log('handleTradeSuccess called with:', response);
+        if (response.status === 'success') {
+            this.showNotification(response.message, 'success');
+            
+            if (response.portfolio) {
+                console.log('Updating portfolio:', response.portfolio);
+                // UI 업데이트
+                this.updateUserInfo({
+                    cash: response.portfolio.cash,
+                    total_assets: response.portfolio.total_assets,
+                    invested_amount: response.portfolio.invested_amount
+                });
+            }
+            
+            // 거래 입력 폼 초기화
+            const quantityInput = document.getElementById('quantity');
+            if (quantityInput) {
+                quantityInput.value = '';
+                this.updateOrderSummary();
+            }
+        } else {
+            this.showNotification(response.message || '거래 처리 중 오류가 발생했습니다.', 'error');
+        }
+    },
+
+    updatePortfolioUI: function() {
+        const holdingsTableBody = document.getElementById('holdingsTableBody');
+        if (!holdingsTableBody) return;
+
+        if (!portfolio.holdings || portfolio.holdings.length === 0) {
+            holdingsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="empty-holdings">
+                        <p>보유중인 주식이 없습니다.</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        const holdingsHTML = portfolio.holdings.map(holding => `
+            <tr>
+                <td>${holding.stock_name}</td>
+                <td>${this.numberWithCommas(holding.quantity)}주</td>
+                <td>${this.numberWithCommas(holding.avg_price)}원</td>
+                <td>${this.numberWithCommas(holding.current_price)}원</td>
+                <td>${this.numberWithCommas(holding.total_value)}원</td>
+                <td class="${holding.return_rate >= 0 ? 'positive' : 'negative'}">
+                    ${holding.return_rate >= 0 ? '+' : ''}${holding.return_rate.toFixed(2)}%
+                </td>
+                <td class="${holding.profit_loss >= 0 ? 'positive' : 'negative'}">
+                    ${holding.profit_loss >= 0 ? '+' : ''}${this.numberWithCommas(holding.profit_loss)}원
+                </td>
+            </tr>
+        `).join('');
+
+        holdingsTableBody.innerHTML = holdingsHTML;
+
+        // 현금 잔액 업데이트
+        const navCashAmount = document.getElementById('navCashAmount');
+        if (navCashAmount && portfolio.cash !== undefined) {
+            navCashAmount.textContent = this.numberWithCommas(portfolio.cash);
+        }
+    },
+
+    updateHoldingInfo: function(holding) {
+        // 보유 주식 정보가 있는 경우 거래 폼에 표시
+        const quantityInput = document.getElementById('quantity');
+        const summaryQuantity = document.getElementById('summaryQuantity');
+        const summaryPrice = document.getElementById('summaryPrice');
+        const summaryTotal = document.getElementById('summaryTotal');
+        const tradeButton = document.getElementById('tradeButton');
+
+        if (quantityInput && summaryQuantity && summaryPrice && summaryTotal && tradeButton) {
+            // 매수/매도 버튼 활성화
+            tradeButton.disabled = false;
+
+            // 현재가 표시
+            summaryPrice.textContent = `${this.numberWithCommas(holding.current_price)}원`;
+
+            // 수량이 입력된 경우 총액 계산
+            const quantity = parseInt(quantityInput.value) || 0;
+            if (quantity > 0) {
+                const total = quantity * holding.current_price;
+                summaryQuantity.textContent = `${this.numberWithCommas(quantity)}주`;
+                summaryTotal.textContent = `${this.numberWithCommas(total)}원`;
+
+                // 매도 시 보유 수량 체크
+                if (this.orderType === 'sell' && quantity > holding.quantity) {
+                    tradeButton.disabled = true;
+                    this.showNotification('보유 수량을 초과할 수 없습니다.', 'error');
+                }
+            }
+        }
+    },
+
+    setupEventListeners: function() {
+        // 주식 아이템 클릭 이벤트
+        document.querySelectorAll('.stock-item').forEach(item => {
+            item.addEventListener('click', () => {
+                console.log('Stock item clicked:', item.dataset);
+                
+                const stockData = {
+                    code: item.dataset.code,
+                    name: item.dataset.name,
+                    price: parseInt(item.dataset.price),
+                    price_diff: parseInt(item.dataset.priceDiff),
+                    change_rate: parseFloat(item.dataset.changeRate)
+                };
+                
+                console.log('Emitting select_stock event:', stockData);
+                
+                // 주식 선택 이벤트 발생
+                socket.emit('select_stock', { 
+                    code: stockData.code,
+                    initial: true
+                });
+
+                // UI 업데이트
+                this.updateSelectedStockInfo(stockData, true);
+            });
+        });
+
+        // 소켓 이벤트 리���너설정
+        socket.on('stock_selected', (data) => {
+            console.log('Received stock_selected response:', data);
+            if (this.selectedStock && data.code === this.selectedStock.code && data.history) {
+                console.log('Initializing chart with history data');
+                this.initializeChartWithHistory(data.history);
+            }
+        });
+
+        // 마켓 데이터 수신 (실시간 가격 업데이트)
+        socket.on('market_data', (data) => {
+            if (data.stocks && this.selectedStock) {
+                const updatedStock = data.stocks.find(s => s.code === this.selectedStock.code);
+                if (updatedStock) {
+                    // 차트에 새로운 데이터 추가
+                    this.appendPriceToChart(updatedStock.price);
+                }
+            }
+        });
+
+        // 매수/매도 탭 전환
+        document.querySelectorAll('.trade-type-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.trade-type-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                this.orderType = tab.dataset.type;
+                
+                const tradeButton = document.getElementById('tradeButton');
+                if (tradeButton) {
+                    tradeButton.textContent = this.orderType === 'buy' ? '매수하기' : '매도하기';
+                    tradeButton.className = `trade-button ${this.orderType}`;
+                }
+                
+                this.updateOrderSummary();
+            });
+        });
+
+        // 수량 입력 이벤트
+        const quantityInput = document.getElementById('quantity');
+        if (quantityInput) {
+            quantityInput.addEventListener('input', () => {
+                this.updateOrderSummary();
+            });
+        }
+
+        // 주문 제출
+        const tradeForm = document.getElementById('tradeForm');
+        if (tradeForm) {
+            tradeForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                console.log('Trade form submitted');
+                if (!this.selectedStock) {
+                    this.showNotification('주식을 선택해주세요.', 'error');
+                    return;
+                }
+
+                const quantity = parseInt(quantityInput.value);
+                if (!quantity || quantity <= 0) {
+                    this.showNotification('주문 수량을 입력해주세요.', 'error');
+                    return;
+                }
+
+                socket.emit('trade', {
+                    type: this.orderType,
+                    stock_code: this.selectedStock.code,
+                    quantity: quantity
+                });
+            });
+        }
+    },
+
+    initChart: function() {
+        const canvas = document.getElementById('priceChart');
+        if (!canvas) {
+            console.warn('Price chart canvas not found');
+            return;
+        }
+
+        try {
+            const ctx = canvas.getContext('2d');
+            this.priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '주가',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1,
+                        borderWidth: 2,
+                        pointRadius: 1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.parsed.y.toLocaleString()}원`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString() + '원';
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error initializing price chart:', error);
+        }
+    },
+
+    updateStockPrices: function(stocks) {
+        console.log('Updating stock prices:', stocks);
+        stocks.forEach(stock => {
+            const stockItem = document.querySelector(`.stock-item[data-code="${stock.code}"]`);
+            if (stockItem) {
+                // 데이터 ���성 업데이트
+                stockItem.dataset.price = stock.price;
+                stockItem.dataset.priceDiff = stock.price_diff;
+                stockItem.dataset.changeRate = stock.change_rate;
+
+                // 가격 정보 업데이트
+                const priceElement = stockItem.querySelector('.stock-price');
+                const changeElement = stockItem.querySelector('.stock-change');
+
+                if (priceElement) {
+                    priceElement.textContent = `${this.numberWithCommas(stock.price)}원`;
+                    
+                    // 가격 변동 효과
+                    if (stock.price_diff !== 0) {
+                        priceElement.classList.remove('value-update');
+                        void priceElement.offsetWidth; // 리플로우 강제
+                        priceElement.classList.add('value-update');
+                    }
+                }
+
+                if (changeElement) {
+                    // 가격 변동과 등락률을 함께 표시 (prev_price 기준)
+                    let changeHTML = '';
+                    if (stock.price_diff > 0) {
+                        changeHTML = `<span class="positive">
+                            +${this.numberWithCommas(stock.price_diff)}원 
+                            (+${stock.change_rate.toFixed(2)}%)
+                        </span>`;
+                    } else if (stock.price_diff < 0) {
+                        changeHTML = `<span class="negative">
+                            ${this.numberWithCommas(stock.price_diff)}원 
+                            (${stock.change_rate.toFixed(2)}%)
+                        </span>`;
+                    } else {
+                        changeHTML = `<span>0원 (0.00%)</span>`;
+                    }
+                    changeElement.innerHTML = changeHTML;
+                }
+            }
+        });
+
+        // 선택된 주식이 있다면 상세 정보도 업데이트
+        if (this.selectedStock) {
+            const updatedStock = stocks.find(s => s.code === this.selectedStock.code);
+            if (updatedStock) {
+                this.updateSelectedStockInfo(updatedStock, true);
+            }
+        }
+    },
+
+    updateSelectedStockInfo: function(stock, skipEmit = false) {
+        this.selectedStock = stock;
+        this.currentPrice = stock.price;
+
+        // 선택된 주식 하이라이트
+        document.querySelectorAll('.stock-item').forEach(item => {
+            item.classList.toggle('selected', item.dataset.code === stock.code);
+        });
+
+        // 주식 정보 업데트
+        document.getElementById('selectedStockName').textContent = stock.name;
+        document.getElementById('selectedStockCode').textContent = stock.code;
+        
+        const priceElement = document.getElementById('selectedStockPrice');
+        const changeElement = document.getElementById('selectedStockChange');
+        
+        if (priceElement) {
+            priceElement.textContent = `${this.numberWithCommas(stock.price)}원`;
+        }
+        
+        if (changeElement) {
+            const sign = stock.price_diff >= 0 ? '+' : '';
+            changeElement.innerHTML = `${sign}${this.numberWithCommas(stock.price_diff)}원 (${sign}${stock.change_rate.toFixed(2)}%)`;
+            changeElement.className = `price-change ${stock.price_diff >= 0 ? 'positive' : 'negative'}`;
+        }
+
+        // 주문 정보 업데이트
+        this.updateOrderSummary();
+    },
+
+    updatePriceChart: function(history) {
+        if (!this.priceChart || !history) return;
+
+        try {
+            console.log('Updating chart with history:', history);
+            
+            // 전체 히스토리 데이터인 경우
+            if (Array.isArray(history) && history.length > 1) {
+                // 시간순으로 정렬
+                const sortedHistory = [...history].sort((a, b) => {
+                    const timeA = new Date(`2000/01/01 ${a.timestamp}`).getTime();
+                    const timeB = new Date(`2000/01/01 ${b.timestamp}`).getTime();
+                    return timeA - timeB;
+                });
+
+                // 차트 데이터 업데이트
+                this.priceChart.data.labels = sortedHistory.map(item => item.timestamp);
+                this.priceChart.data.datasets[0].data = sortedHistory.map(item => item.price);
+
+                // Y축 범위 동적 조정
+                const prices = sortedHistory.map(item => item.price);
+                const minPrice = Math.min(...prices);
+                const maxPrice = Math.max(...prices);
+                const padding = (maxPrice - minPrice) * 0.1;
+
+                this.priceChart.options.scales.y.min = Math.floor(minPrice - padding);
+                this.priceChart.options.scales.y.max = Math.ceil(maxPrice + padding);
+            }
+            // 실시간 업데이트인 경우
+            else if (Array.isArray(history) && history.length === 1) {
+                const latest = history[0];
+                
+                // 차트에 데이터가 너무 많으면 오래된 데이터 제거
+                if (this.priceChart.data.labels.length > 100) {
+                    this.priceChart.data.labels.shift();
+                    this.priceChart.data.datasets[0].data.shift();
+                }
+                
+                // 새 데이터 추가
+                this.priceChart.data.labels.push(latest.timestamp);
+                this.priceChart.data.datasets[0].data.push(latest.price);
+
+                // Y축 범위 동적 조정
+                const prices = this.priceChart.data.datasets[0].data;
+                const minPrice = Math.min(...prices);
+                const maxPrice = Math.max(...prices);
+                const padding = (maxPrice - minPrice) * 0.1;
+
+                this.priceChart.options.scales.y.min = Math.floor(minPrice - padding);
+                this.priceChart.options.scales.y.max = Math.ceil(maxPrice + padding);
+            }
+
+            // 차트 업데이트
+            this.priceChart.update('none');  // 애니메이션 없이 업데이트
+        } catch (error) {
+            console.error('Error updating price chart:', error);
+            console.error('History data:', history);
+        }
+    },
+
+    updateOrderSummary: function() {
+        if (!this.selectedStock) return;
+
+        const quantity = parseInt(document.getElementById('quantity').value) || 0;
+        const total = quantity * this.currentPrice;
+        
+        document.getElementById('summaryQuantity').textContent = `${this.numberWithCommas(quantity)}주`;
+        document.getElementById('summaryPrice').textContent = `${this.numberWithCommas(this.currentPrice)}원`;
+        document.getElementById('summaryTotal').textContent = `${this.numberWithCommas(total)}`;
+        
+        const tradeButton = document.getElementById('tradeButton');
+        if (tradeButton) {
+            tradeButton.disabled = quantity <= 0;
+        }
+    },
+
+    numberWithCommas: function(x) {
+        if (x === undefined || x === null) return '0';
+        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    },
+
+    updateUserInfo: function(userInfo) {
+        if (userInfo.cash !== undefined) {
+            // 네비게이 바의 현금 업데이트
+            const navCashElement = document.getElementById('navCashAmount');
+            if (navCashElement) {
+                navCashElement.textContent = this.numberWithCommas(userInfo.cash);
+            }
+
+            // AI  포���폴리오 약 업데트
+            const portfolioSummaryElement = document.getElementById('portfolioSummary');
+            if (portfolioSummaryElement) {
+                const totalValue = userInfo.total_assets || 0;
+                const invested = userInfo.invested_amount || 0;
+                const returnRate = ((totalValue - 10000000) / 10000000) * 100;
+                
+                portfolioSummaryElement.innerHTML = `
+                    <div class="summary-item">
+                        <span class="label">총 자산:</span>
+                        <span class="value">${this.numberWithCommas(totalValue)}원</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">투자 액:</span>
+                        <span class="value">${this.numberWithCommas(invested)}원</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">현금:</span>
+                        <span class="value">${this.numberWithCommas(userInfo.cash)}원</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">수익률:</span>
+                        <span class="value ${returnRate >= 0 ? 'positive' : 'negative'}">
+                            ${returnRate >= 0 ? '+' : ''}${returnRate.toFixed(2)}%
+                        </span>
+                    </div>
+                `;
+            }
+        }
+    },
+
+    initStyles: function() {
+        if (!document.getElementById('market-styles')) {
+            const style = document.createElement('style');
+            style.id = 'market-styles';
+            style.textContent = `
+                .holdings-section {
+                    background: var(--card-bg);
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin-top: 20px;
+                }
+
+                .value-update {
+                    animation: flash 0.5s ease-out;
+                }
+
+                @keyframes flash {
+                    0% {
+                        background-color: var(--primary-color);
+                        color: white;
+                    }
+                    100% {
+                        background-color: transparent;
+                        color: inherit;
+                    }
+                }
+
+                .holdings-title {
+                    font-size: 1.2rem;
+                    font-weight: 600;
+                    color: var(--text-color);
+                    margin-bottom: 15px;
+                }
+
+                .holdings-table {
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    overflow: hidden;
+                }
+
+                .holdings-header {
+                    display: grid;
+                    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+                    gap: 10px;
+                    padding: 12px;
+                    background: var(--form-bg);
+                    border-bottom: 1px solid var(--border-color);
+                    font-weight: 500;
+                    color: var(--secondary-text);
+                }
+
+                .holdings-body {
+                    max-height: 300px;
+                    overflow-y: auto;
+                }
+
+                .holding-item {
+                    display: grid;
+                    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+                    gap: 10px;
+                    padding: 12px;
+                    border-bottom: 1px solid var(--border-color);
+                    transition: background-color 0.2s;
+                }
+
+                .holding-item:last-child {
+                    border-bottom: none;
+                }
+
+                .holding-item:hover {
+                    background-color: var(--hover-color);
+                }
+
+                .holding-item .col {
+                    display: flex;
+                    align-items: center;
+                    color: var(--text-color);
+                }
+
+                .holding-item .positive {
+                    color: var(--success-color, #34d399);
+                }
+
+                .holding-item .negative {
+                    color: var(--danger-color, #f87171);
+                }
+
+                .empty-holdings {
+                    text-align: center;
+                    padding: 30px;
+                    color: var(--secondary-text);
+                    background: var(--form-bg);
+                    border-radius: 8px;
+                }
+
+                /* 스크롤바 스타일 */
+                .holdings-body::-webkit-scrollbar {
+                    width: 8px;
+                }
+
+                .holdings-body::-webkit-scrollbar-track {
+                    background: var(--form-bg);
+                }
+
+                .holdings-body::-webkit-scrollbar-thumb {
+                    background: var(--border-color);
+                    border-radius: 4px;
+                }
+
+                .holdings-body::-webkit-scrollbar-thumb:hover {
+                    background: var(--secondary-text);
+                }
+
+                /* 토스트 알림 스타일 */
+                .toast-notification {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 15px 20px;
+                    background: white;
+                    border-radius: 4px;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                    z-index: 9999;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                }
+
+                .toast-notification.show {
+                    opacity: 1;
+                }
+
+                .toast-notification.success {
+                    background-color: #34d399;
+                    color: white;
+                }
+
+                .toast-notification.error {
+                    background-color: #f87171;
+                    color: white;
+                }
+
+                .stock-price, .stock-change {
+                    transition: background-color 0.3s ease;
+                    padding: 2px 4px;
+                    border-radius: 4px;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    },
+
+    // 소켓 리스너 설정
+    setupSocketListeners: function() {
+        // 마켓 데이터 수신 (실시간 가격 업데이트)
+        socket.on('market_data', (data) => {
+            console.log('Received market data:', data);
+            
+            // 주식 가격 업데이트
+            if (data.stocks) {
+                this.updateStockPrices(data.stocks);
+            }
+            
+            // 보유 주식 정보 업데이트
+            if (data.holdings) {
+                this.updatePortfolioUI();
+                
+                // 총 보유 주식 가치와 투자 금액 계산
+                const totalStockValue = data.holdings.reduce((sum, holding) => sum + holding.total_value, 0);
+                const totalInvested = data.holdings.reduce((sum, holding) => sum + (holding.avg_price * holding.quantity), 0);
+                
+                // 현재 현금 가져오기
+                const currentCash = parseFloat(document.getElementById('navCashAmount').textContent.replace(/[^0-9.-]/g, '')) || 0;
+                
+                // 총 자산과 수익률 계산
+                const totalAssets = totalStockValue + currentCash;
+                const returnRate = ((totalAssets - 10000000) / 10000000) * 100;
+                
+                // 포트폴리오 요약 업데이트
+                this.updateUserInfo({
+                    total_assets: totalAssets,
+                    invested_amount: totalInvested,
+                    cash: currentCash,
+                    total_return_rate: returnRate
+                });
+            }
+
+            // 선택된 주식 차트 업데이트
+            if (data.stocks && this.selectedStock) {
+                const updatedStock = data.stocks.find(s => s.code === this.selectedStock.code);
+                if (updatedStock) {
+                    // 차트에 새로운 데이터 추가
+                    this.appendPriceToChart(updatedStock.price);
+                }
+            }
+        });
+
+        // 주식 선택 응답 수신
+        socket.on('select_stock', (data) => {
+            console.log('Received select_stock response:', data);
+            if (this.selectedStock && data.code === this.selectedStock.code && data.history) {
+                console.log('Initializing chart with history data');
+                this.initializeChartWithHistory(data.history);
+            }
+        });
+
+        // 거래 성공 리스너
+        socket.on('trade_success', (data) => {
+            console.log('Trade success:', data);
+            if (data.holdings) {
+                this.updatePortfolioUI();
+                
+                // 총 보유 주식 가치와 투자 금액 계산
+                const totalStockValue = data.holdings.reduce((sum, holding) => sum + holding.total_value, 0);
+                const totalInvested = data.holdings.reduce((sum, holding) => sum + (holding.avg_price * holding.quantity), 0);
+                
+                // 총 자산과 수익률 계산
+                const totalAssets = totalStockValue + data.cash;
+                const returnRate = ((totalAssets - 10000000) / 10000000) * 100;
+                
+                // 포트폴리오 요약 업데이트
+                this.updateUserInfo({
+                    total_assets: totalAssets,
+                    invested_amount: totalInvested,
+                    cash: data.cash,
+                    total_return_rate: returnRate
+                });
+            }
+        });
+    },
+
+    initializeChartWithHistory: function(history) {
+        if (!this.priceChart || !history || !Array.isArray(history)) {
+            console.warn('Invalid chart data:', { chart: !!this.priceChart, history });
+            return;
+        }
+
+        try {
+            console.log('Initializing chart with history:', history);
+
+            // 차트 데이터 초기화
+            this.priceChart.data.labels = [];
+            this.priceChart.data.datasets[0].data = [];
+
+            // 시간순으로 정렬하고 데이터 추가
+            history.sort((a, b) => {
+                const timeA = new Date(`2000/01/01 ${a.timestamp}`).getTime();
+                const timeB = new Date(`2000/01/01 ${b.timestamp}`).getTime();
+                return timeA - timeB;
+            }).forEach(item => {
+                this.priceChart.data.labels.push(item.timestamp);
+                this.priceChart.data.datasets[0].data.push(item.price);
+            });
+
+            // Y축 범위 설정
+            this.updateChartYAxisRange();
+
+            // 차트 업데이트
+            this.priceChart.update('none');
+            
+            console.log('Chart initialized with history data:', {
+                labels: this.priceChart.data.labels,
+                data: this.priceChart.data.datasets[0].data
+            });
+        } catch (error) {
+            console.error('Error initializing chart with history:', error);
+        }
+    },
+
+    appendPriceToChart: function(price) {
+        if (!this.priceChart) return;
+
+        try {
+            const currentTime = new Date().toLocaleTimeString('ko-KR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+            // 데이터가 너무 많으면 오래된 데이터 제거
+            if (this.priceChart.data.labels.length > 100) {
+                this.priceChart.data.labels.shift();
+                this.priceChart.data.datasets[0].data.shift();
+            }
+
+            // 새 데이터 추가
+            this.priceChart.data.labels.push(currentTime);
+            this.priceChart.data.datasets[0].data.push(price);
+
+            // Y축 범위 업데이트
+            this.updateChartYAxisRange();
+
+            // 차트 업데이트
+            this.priceChart.update('none');
+
+            console.log('Price appended to chart:', {
+                time: currentTime,
+                price: price,
+                totalPoints: this.priceChart.data.labels.length
+            });
+        } catch (error) {
+            console.error('Error appending price to chart:', error);
+        }
+    },
+
+    updateChartYAxisRange: function() {
+        if (!this.priceChart) return;
+
+        const prices = this.priceChart.data.datasets[0].data;
+        if (prices.length === 0) return;
+
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+        const padding = (maxPrice - minPrice) * 0.1;
+
+        this.priceChart.options.scales.y.min = Math.floor(minPrice - padding);
+        this.priceChart.options.scales.y.max = Math.ceil(maxPrice + padding);
+    }
+};
+
+// 숫자 포맷팅 함수
+function numberWithCommas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// DOM이 로드되면 초기화
+let initializationPromise = null;
+
+function initializeApp() {
+    if (initializationPromise) {
+        return initializationPromise;
+    }
+
+    initializationPromise = app.init().then(() => {
+        console.log('App initialized successfully');
+    }).catch(error => {
+        console.error('App initialization failed:', error);
+    });
+
+    return initializationPromise;
+}
+
+document.addEventListener('DOMContentLoaded', initializeApp);
+
+export { app, initializeApp };
+

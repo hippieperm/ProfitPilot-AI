@@ -1,0 +1,551 @@
+/* ==========================================================================
+   포트폴리오 대시보드 레이아웃
+   ========================================================================== */
+.portfolio-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* 포트폴리오 요약 섹션 */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+.summary-card {
+    background: var(--bg-primary);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem;
+    border: 1px solid var(--border-light);
+    transition: var(--transition-normal);
+}
+
+.summary-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.card-header i {
+    font-size: 1.5rem;
+    color: var(--brand-primary);
+}
+
+.card-header h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.card-value {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.card-value .amount {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.change {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--border-radius-sm);
+}
+
+.change.positive {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.change.negative {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+}
+
+/* 메트릭스 그리드 */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.metric .label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.metric .value {
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+/* 자산 배분 차트 */
+.allocation-chart {
+    height: 200px;
+    margin: 1.5rem 0;
+}
+
+.allocation-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+/* 보유 종목 테이블 */
+.holdings-table {
+    background: var(--bg-primary);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border-light);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-light);
+}
+
+th {
+    background: var(--bg-secondary);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+td {
+    color: var(--text-primary);
+}
+
+tr:hover {
+    background: var(--bg-secondary);
+}
+
+/* 거래 히스토리 타임라인 */
+.history-timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.timeline-item {
+    position: relative;
+    padding: 1.5rem;
+    background: var(--bg-primary);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-light);
+    margin-bottom: 1.5rem;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -2rem;
+    top: 50%;
+    width: 1rem;
+    height: 1rem;
+    background: var(--brand-primary);
+    border-radius: 50%;
+    transform: translateY(-50%);
+}
+
+.timeline-item::after {
+    content: '';
+    position: absolute;
+    left: -1.5rem;
+    top: 50%;
+    width: 1.5rem;
+    height: 2px;
+    background: var(--brand-primary);
+    transform: translateY(-50%);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1200px) {
+    .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .summary-card.asset-allocation {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 768px) {
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .summary-card.asset-allocation {
+        grid-column: auto;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* 애니메이션 */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.summary-card {
+    animation: slideIn 0.5s ease-out forwards;
+}
+
+.summary-card:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.summary-card:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+.portfolio-container {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+/* 포트폴리오 요약 */
+.portfolio-summary {
+    margin-bottom: 3rem;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.summary-card {
+    background: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.summary-card h3 {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-bottom: 0.8rem;
+}
+
+.summary-card .value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.summary-card.profit-positive .value {
+    color: var(--up-color);
+}
+
+.summary-card.profit-negative .value {
+    color: var(--down-color);
+}
+
+/* 보유 주식 목록 */
+.holdings-section {
+    margin-top: 3rem;
+}
+
+.holdings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.holding-card {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.holding-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px var(--shadow-color);
+}
+
+.stock-info h3 {
+    font-size: 1.3rem;
+    margin-bottom: 0.8rem;
+    color: var(--text-primary);
+}
+
+.holding-details {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.profit-info {
+    text-align: right;
+}
+
+.current-price {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.profit-rate, .profit-amount {
+    font-weight: 600;
+}
+
+.profit-rate.up, .profit-amount.up {
+    color: var(--up-color);
+}
+
+.profit-rate.down, .profit-amount.down {
+    color: var(--down-color);
+}
+
+/* 보유 주식 없�� */
+.no-holdings {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+}
+
+.no-holdings p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.btn-primary {
+    display: inline-block;
+    padding: 1rem 2rem;
+    background: var(--accent-color);
+    color: white;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px var(--shadow-color);
+}
+
+/* 애니메이션 */
+@keyframes valueUpdate {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.value-update {
+    animation: valueUpdate 0.5s ease;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1200px) {
+    .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .holdings-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.portfolio-container {
+    padding: var(--spacing-lg) 0;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-lg);
+    color: var(--text-primary);
+}
+
+/* 계좌 요약 */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+.summary-card {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    box-shadow: var(--card-shadow);
+}
+
+.card-icon {
+    font-size: 2rem;
+    color: var(--primary-color);
+}
+
+.card-content h3 {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.card-content .value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* 테이블 스타일 */
+.table-responsive {
+    overflow-x: auto;
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--card-shadow);
+    margin-bottom: var(--spacing-xl);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: var(--spacing-md);
+    text-align: right;
+}
+
+th {
+    background-color: var(--card-bg-secondary);
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+th:first-child,
+td:first-child {
+    text-align: left;
+}
+
+tbody tr {
+    border-bottom: 1px solid var(--border-color);
+}
+
+tbody tr:last-child {
+    border-bottom: none;
+}
+
+/* 수익률 색상 */
+.positive {
+    color: var(--color-up);
+}
+
+.negative {
+    color: var(--color-down);
+}
+
+/* 거래 유형 스타일 */
+.transaction-type {
+    text-align: center !important;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.875rem;
+}
+
+.transaction-type.buy {
+    background-color: rgba(var(--color-up), 0.1);
+    color: var(--color-up);
+}
+
+.transaction-type.sell {
+    background-color: rgba(var(--color-down), 0.1);
+    color: var(--color-down);
+}
+
+/* 빈 상태 */
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--card-shadow);
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .table-responsive {
+        margin: 0 calc(var(--spacing-md) * -1);
+        border-radius: 0;
+    }
+
+    th, td {
+        padding: var(--spacing-sm);
+        font-size: 0.875rem;
+    }
+} 
