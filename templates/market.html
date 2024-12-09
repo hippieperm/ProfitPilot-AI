@@ -1,0 +1,78 @@
+{% extends "base.html" %} {% block title %}주식 거래 - 주식 게임{% endblock %}
+{% block extra_css %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/market.css') }}"
+/>
+<style>
+  .market-container {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 20px;
+    padding: 20px;
+    height: calc(100vh - 60px);
+    background-color: var(--bg-color);
+  }
+
+  .stock-list {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px var(--shadow-color);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .stock-list-header h2 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 1.5rem;
+  }
+
+  .stock-search input {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 14px;
+    background: var(--input-bg);
+    color: var(--text-color);
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="market-container">
+  <!-- 주식 목록 -->
+  <div class="stock-list">
+    <div class="stock-list-header">
+      <h2>주식 목록</h2>
+    </div>
+    <div class="stock-search">
+      <input type="text" id="stockSearch" placeholder="종목 검색..." />
+    </div>
+    <div class="stock-items" id="stockList">
+      {% for stock in stocks %}
+      <div
+        class="stock-item"
+        data-code="{{ stock.code }}"
+        data-name="{{ stock.name }}"
+        data-price="{{ stock.price }}"
+        data-price-diff="{{ stock.price_diff }}"
+        data-change-rate="{{ stock.change_rate }}"
+      >
+        <div class="stock-item-header">
+          <span class="stock-name">{{ stock.name }}</span>
+          <span class="stock-code">{{ stock.code }}</span>
+        </div>
+        <div class="stock-price-info">
+          <span class="stock-price" id="price-{{ stock.code }}">
+            {% if stock.price %} {{ "{:,.0f}".format(stock.price) }}원 {% else
+            %} 가격 정보 없음 {% endif %}
+          </span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
