@@ -1,0 +1,139 @@
+/* ==========================================================================
+   기본 설정 및 변수
+   ========================================================================== */
+:root {
+  --primary: #6c5ce7;
+  --primary-light: #a8a4f7;
+  --text-primary: #2d3436;
+  --text-secondary: #636e72;
+  --bg-hover: #f0f2f5;
+  --border-color: #e1e8ed;
+}
+
+/* ==========================================================================
+   기본 스타일
+   ========================================================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  background: #f8f9fa;
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   사이드바 스타일
+   ========================================================================== */
+.side-nav {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 240px;
+  background: white;
+  border-right: 1px solid var(--border-color);
+  padding: 1rem;
+  z-index: 1000;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.logo a {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--primary);
+}
+
+.logo-icon {
+  font-size: 1.5rem;
+  margin-right: 0.5rem;
+}
+
+.logo-text {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.nav-links {
+  list-style: none;
+  padding: 0;
+}
+
+.nav-links li {
+  margin-bottom: 0.5rem;
+}
+
+.nav-links a {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.nav-links a:hover {
+  background: var(--bg-hover);
+  transform: translateX(5px);
+}
+
+.nav-links a.active {
+  background: var(--primary);
+  color: white;
+}
+
+.nav-links i {
+  width: 1.5rem;
+  margin-right: 0.75rem;
+  font-size: 1.1rem;
+}
+
+/* ==========================================================================
+   메인 컨텐츠 영역
+   ========================================================================== */
+.main-content {
+  margin-left: 240px;
+  padding: 2rem;
+  min-height: 100vh;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .side-nav {
+    width: 60px;
+  }
+
+  .logo-text,
+  .nav-links span {
+    display: none;
+  }
+
+  .main-content {
+    margin-left: 60px;
+  }
+}
+
+.value-update {
+  animation: valueChange 1s ease;
+}
+
+@keyframes valueChange {
+  0% {
+    background-color: rgba(255, 255, 0, 0.3);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
