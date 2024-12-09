@@ -9,6 +9,10 @@
 ![image](https://github.com/user-attachments/assets/8a0cf539-358e-4cae-8c4e-6854e85f61a7)
 
 
+
+![KakaoTalk_Photo_2024-12-09-18-08-46](https://github.com/user-attachments/assets/ace375b0-56f2-45d7-a14f-32a3203d62dc)
+
+
 # 주식 거래 시뮬레이션 프로젝트
 
 실시간 주식 거래를 시뮬레이션하는 웹 애플리케이션입니다. Flask 기반의 백엔드와 WebSocket을 통한 실시간 데이터 처리를 제공합니다.
