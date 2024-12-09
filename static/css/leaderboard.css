@@ -1,0 +1,159 @@
+/* 리더보드 컨테이너 */
+.leaderboard-container {
+    padding: var(--spacing-lg) var(--spacing-xl);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 상단 섹션 */
+.section-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-xl) 0;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.section-description {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+/* 테이블 스타일 */
+.table-responsive {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.leaderboard-table th {
+    background-color: var(--card-bg-secondary);
+    color: var(--text-secondary);
+    font-weight: 600;
+    padding: var(--spacing-lg);
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+}
+
+.leaderboard-table td {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 1.1rem;
+}
+
+/* 순위 뱃지 스타일 */
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.rank-1 {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #000;
+}
+
+.rank-2 {
+    background: linear-gradient(135deg, #E0E0E0, #B0B0B0);
+    color: #000;
+}
+
+.rank-3 {
+    background: linear-gradient(135deg, #CD7F32, #8B4513);
+    color: #fff;
+}
+
+/* 행 스타일 */
+.leaderboard-row {
+    transition: all 0.2s ease;
+}
+
+.leaderboard-row:hover {
+    background-color: var(--card-bg-hover);
+    transform: translateX(5px);
+}
+
+.leaderboard-row.highlight {
+    background-color: rgba(var(--primary-color-rgb), 0.1);
+}
+
+/* 사용자명 스타일 */
+.username {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* 수익률 스타일 */
+.return-rate {
+    font-weight: 700;
+}
+
+.return-rate.positive {
+    color: var(--up-color);
+}
+
+.return-rate.negative {
+    color: var(--down-color);
+}
+
+/* 총 자산 스타일 */
+.total-assets {
+    font-family: 'Roboto Mono', monospace;
+    font-weight: 500;
+}
+
+/* 빈 상태 스타일 */
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    background-color: var(--card-bg-secondary);
+    border-radius: var(--border-radius-lg);
+    margin: var(--spacing-xl) 0;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .leaderboard-container {
+        padding: var(--spacing-md);
+    }
+
+    .section-title {
+        font-size: 2rem;
+    }
+
+    .leaderboard-table th,
+    .leaderboard-table td {
+        padding: var(--spacing-md);
+        font-size: 0.95rem;
+    }
+
+    .rank-badge {
+        width: 28px;
+        height: 28px;
+        font-size: 0.9rem;
+    }
+} 

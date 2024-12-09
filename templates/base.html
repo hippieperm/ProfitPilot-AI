@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% if current_user.is_authenticated %}
+    <meta name="user-id" content="{{ current_user.id }}">
+    {% endif %}
+    <title>{% block title %}주식 게임{% endblock %}</title>
+    
+    <!-- 초기 테마 설정 -->
+    <script>
+        // 페이지 로드 전에 테마 즉시 적용
+        const savedTheme = localStorage.getItem('theme');
+        document.documentElement.setAttribute('data-theme', savedTheme || 'dark');
+        document.documentElement.style.colorScheme = savedTheme || 'dark';
+    </script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- 기본 스타일시트 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/toast.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    
+    <!-- 페이지별 추가 스타일시트 -->
+    {% block extra_css %}{% endblock %}
+    
+    <!-- 필수 스크립트 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/common/toast.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/base.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</head>
+<body>
+    <!-- 네비게이션 바 -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <!-- 로고 -->
+            <a href="{{ url_for('main.index') }}" class="navbar-brand">
+                <i class="fas fa-chart-line"></i>
+                <span>주식 게임</span>
+            </a>
+            
+            <!-- 메뉴 -->
+            <ul class="navbar-nav">
+                {% if current_user.is_authenticated %}
+                <li class="nav-item">
+                    <span class="nav-link cash-display">
+                        <i class="fas fa-wallet"></i>
+                        <span>보유현금: </span>
+                        <span id="navCashAmount">{{ current_user.cash | format_number }}</span>원
+                    </span>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('main.market') }}" class="nav-link">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>거래</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('main.portfolio') }}" class="nav-link">
+                        <i class="fas fa-briefcase"></i>
+                        <span>포트폴리오</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('main.transactions') }}" class="nav-link">
+                        <i class="fas fa-history"></i>
+                        <span>거래내역</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('main.leaderboard') }}" class="nav-link">
+                        <i class="fas fa-trophy"></i>
+                        <span>리더보드</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('main.ai_chat') }}" class="nav-link">
+                        <i class="fas fa-robot"></i>
+                        <span>AI 챗봇</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('main.notifications') }}" class="nav-link">
+                        <i class="fas fa-bell"></i>
+                        <span>알림</span>
+                        <span id="notification-counter" class="notification-badge" style="display: none;">0</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <button id="themeToggle" class="nav-link theme-toggle">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('auth.logout') }}" class="nav-link">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>로그아웃</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a href="{{ url_for('auth.login') }}" class="nav-link">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>로그인</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('auth.register') }}" class="nav-link">
+                        <i class="fas fa-user-plus"></i>
+                        <span>회원가입</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <button id="themeToggle" class="nav-link theme-toggle">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </li>
+                {% endif %}
+            </ul>
+
+            <!-- 모바일 메뉴 토글 버튼 -->
+            <button class="navbar-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+    
+    <!-- 메인 컨텐츠 -->
+    <main class="main-content">
+        <!-- 플래시 메시지 -->
+        <div id="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="alert-close" data-dismiss="alert" aria-label="Close">&times;</button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+        
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- 알림 컨테이너 -->
+    <div class="toast-container"></div>
+
+    <script>
+        // 플래시 메시지 자동 제거
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                // 5초 후 자동으로 사라지기
+                setTimeout(function() {
+                    alert.style.opacity = '0';
+                    setTimeout(function() {
+                        alert.remove();
+                    }, 300);
+                }, 5000);
+
+                // 닫기 버튼 클릭 처리
+                const closeButton = alert.querySelector('.alert-close');
+                if (closeButton) {
+                    closeButton.addEventListener('click', function() {
+                        alert.style.opacity = '0';
+                        setTimeout(function() {
+                            alert.remove();
+                        }, 300);
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

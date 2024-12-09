@@ -1,0 +1,316 @@
+/* 네비게이션 바 숨기기 */
+.navbar {
+    background: transparent;
+    box-shadow: none;
+}
+
+.nav-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem 2rem;
+}
+
+/* 로그인/회원가입 페이지의 네비게이션 스타일 */
+.auth-page .navbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+}
+
+.auth-page .nav-brand {
+    color: var(--text-primary);
+}
+
+.auth-page .nav-menu,
+.auth-page .auth-buttons {
+    display: none; /* 로고만 표시 */
+}
+
+/* 컨테이너 위치 조정 */
+.auth-page .auth-container {
+    margin-top: 4rem; /* 네비게이션 바 높이만큼 여백 추가 */
+}
+
+/* 전체 페이지 레이아웃 */
+body.auth-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, 
+        rgba(var(--accent-color-rgb), 0.1) 0%,
+        rgba(var(--up-color-rgb), 0.1) 100%
+    );
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 배경 애니메이션 효과 */
+body.auth-page::before,
+body.auth-page::after {
+    content: '';
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, 
+        rgba(var(--accent-color-rgb), 0.1),
+        rgba(var(--up-color-rgb), 0.1)
+    );
+    animation: float 15s infinite ease-in-out;
+}
+
+body.auth-page::before {
+    top: -200px;
+    left: -200px;
+}
+
+body.auth-page::after {
+    bottom: -200px;
+    right: -200px;
+    animation-delay: -7.5s;
+}
+
+@keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(50px, 50px) scale(1.1); }
+}
+
+/* 메인 컨테이너 */
+.auth-container {
+    width: 100%;
+    max-width: 480px;
+    background: var(--bg-primary);
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    position: relative;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(var(--accent-color-rgb), 0.1);
+    animation: containerAppear 0.6s ease-out;
+    z-index: 1;
+    padding: 2.5rem;
+    box-sizing: border-box;
+}
+
+/* 헤더 섹션 */
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-header h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg,
+        var(--accent-color),
+        var(--up-color)
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.auth-header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+/* 폼 섹션 */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1rem 1.5rem;
+    width: 100%;
+}
+
+/* 입력 필드 그룹 */
+.form-group {
+    position: relative;
+    margin-bottom: 1rem;
+    width: 100%;
+}
+
+.form-group label {
+    position: absolute;
+    left: 3rem;
+    top: -0.5rem;
+    background: var(--bg-primary);
+    padding: 0 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-radius: 4px;
+    z-index: 1;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.form-group i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-color);
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 4px rgba(var(--accent-color-rgb), 0.1);
+}
+
+.form-group input:focus + i {
+    color: var(--up-color);
+    transform: translateY(-50%) scale(1.1);
+}
+
+/* 버튼 스타일 */
+.auth-button {
+    width: 100%;
+    padding: 1.2rem;
+    background: linear-gradient(135deg,
+        var(--accent-color),
+        var(--up-color)
+    );
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+}
+
+.auth-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(var(--accent-color-rgb), 0.2);
+}
+
+.auth-button i {
+    font-size: 1.3rem;
+    transition: transform 0.3s ease;
+}
+
+.auth-button:hover i {
+    transform: translateX(4px);
+}
+
+/* 하단 링크 */
+.auth-links {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.auth-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 2rem;
+    background: rgba(var(--accent-color-rgb), 0.1);
+    color: var(--accent-color);
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.auth-links a:hover {
+    background: var(--accent-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px var(--shadow-color);
+}
+
+/* 알림 메시지 */
+.flash-message {
+    position: absolute;
+    top: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    animation: messageSlide 0.4s ease;
+    z-index: 100;
+    min-width: 300px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.flash-message.error {
+    background: var(--down-bg);
+    color: var(--down-color);
+    border: 1px solid var(--down-color);
+}
+
+.flash-message.success {
+    background: var(--up-bg);
+    color: var(--up-color);
+    border: 1px solid var(--up-color);
+}
+
+/* 애니메이션 */
+@keyframes containerAppear {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes messageSlide {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -20px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .auth-container {
+        max-width: 90%;
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+
+    .auth-form {
+        padding: 1rem;
+    }
+
+    .form-group input {
+        padding: 0.8rem 0.8rem 0.8rem 2.8rem;
+    }
+} 

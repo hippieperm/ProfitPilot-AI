@@ -1,0 +1,83 @@
+/* 토스트 알림 컨테이너 */
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 9999;
+}
+
+/* 토스트 알림 기본 스타일 */
+.toast-notification {
+    min-width: 300px;
+    max-width: 400px;
+    padding: 16px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: slideIn 0.3s ease forwards;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.toast-notification:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* 토스트 아이콘 */
+.toast-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+/* 토스트 내용 */
+.toast-content {
+    flex-grow: 1;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* 토스트 타입별 스타일 */
+.toast-notification.success {
+    background: #10B981;
+    color: white;
+    border-left: 4px solid #059669;
+}
+
+.toast-notification.error {
+    background: #EF4444;
+    color: white;
+    border-left: 4px solid #DC2626;
+}
+
+/* 토스트 애니메이션 */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.toast-notification.hide {
+    animation: slideOut 0.3s ease forwards;
+} 
