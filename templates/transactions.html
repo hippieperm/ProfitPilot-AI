@@ -1,0 +1,517 @@
+{% extends "base.html" %}
+
+{% block title %}거래 내역 - 주식 게임{% endblock %}
+
+{% block content %}
+<div class="transactions-container">
+    <div class="container">
+        <!-- 거래 내역 섹션 -->
+        <section class="transactions-section">
+            <div class="section-header">
+                <h2 class="section-title">거래 내역</h2>
+                <div class="filter-controls">
+                    <select id="typeFilter" class="filter-select">
+                        <option value="all">전체</option>
+                        <option value="BUY">매수</option>
+                        <option value="SELL">매도</option>
+                    </select>
+                    <select id="periodFilter" class="filter-select">
+                        <option value="all">전체 기간</option>
+                        <option value="today">오늘</option>
+                        <option value="week">1주일</option>
+                        <option value="month">1개월</option>
+                        <option value="3months">3개월</option>
+                    </select>
+                </div>
+            </div>
+
+            {% if transactions and transactions|length > 0 %}
+            <div class="table-responsive">
+                <table class="transactions-table">
+                    <thead>
+                        <tr>
+                            <th class="sticky-col">거래일시</th>
+                            <th class="sticky-col">종목명</th>
+                            <th>거래유형</th>
+                            <th>거래수량</th>
+                            <th>거래단가</th>
+                            <th>거래금액</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tx in transactions %}
+                        <tr class="transaction-row" data-type="{{ tx.transaction_type }}" data-timestamp="{{ tx.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}">
+                            <td class="timestamp sticky-col">{{ tx.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td class="stock-name sticky-col">{{ tx.stock_name }}</td>
+                            <td class="transaction-type {{ tx.transaction_type.lower() }}">
+                                {{ "매수" if tx.transaction_type == "BUY" else "매도" }}
+                            </td>
+                            <td class="quantity">{{ "{:,}".format(tx.quantity) }}주</td>
+                            <td class="price">{{ "{:,.0f}".format(tx.price) }}원</td>
+                            <td class="total-amount">{{ "{:,.0f}".format(tx.total_amount) }}원</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 거래 통계 -->
+            <div class="transaction-stats">
+                <div class="stat-card">
+                    <div class="stat-title">총 거래횟수</div>
+                    <div class="stat-value">{{ transactions|length }}회</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">매수 횟수</div>
+                    <div class="stat-value">{{ transactions|selectattr('transaction_type', 'equalto', 'BUY')|list|length }}회</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">매도 횟수</div>
+                    <div class="stat-value">{{ transactions|selectattr('transaction_type', 'equalto', 'SELL')|list|length }}회</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">총 거래대금</div>
+                    <div class="stat-value">{{ "{:,.0f}".format(total_amount|default(0)) }}원</div>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>거래 내역이 없습니다.</p>
+                <a href="{{ url_for('main.market') }}" class="btn btn-primary">거래하러 가기</a>
+            </div>
+            {% endif %}
+        </section>
+    </div>
+</div>
+
+<style>
+.transactions-container {
+    padding: var(--spacing-lg) 0;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.filter-controls {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.filter-select {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+/* 테이블 스타일 */
+.table-responsive {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--card-shadow);
+    overflow-x: auto;
+    margin-bottom: var(--spacing-lg);
+}
+
+.transactions-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.transactions-table th,
+.transactions-table td {
+    padding: var(--spacing-md);
+    text-align: right;
+}
+
+.transactions-table th {
+    background-color: var(--card-bg-secondary);
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.transactions-table td {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.transactions-table tr:last-child td {
+    border-bottom: none;
+}
+
+.timestamp,
+.stock-code {
+    text-align: left !important;
+}
+
+.transaction-type {
+    text-align: center !important;
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: inline-block;
+    min-width: 80px;
+}
+
+.transaction-type.buy {
+    background-color: rgba(52, 211, 153, 0.2);  /* 연한 초록색 배경 */
+    color: #059669;  /* 진한 초록색 텍스트 */
+    border: 1px solid rgba(52, 211, 153, 0.4);
+}
+
+.transaction-type.sell {
+    background-color: rgba(248, 113, 113, 0.2);  /* 연한 빨간색 배경 */
+    color: #dc2626;  /* 진한 빨간색 텍스트 */
+    border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+/* 거래 통계 */
+.transaction-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+}
+
+.stat-card {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--card-shadow);
+    text-align: center;
+}
+
+.stat-title {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.stat-value {
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+/* 빈 상태 */
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--card-shadow);
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .transactions-container {
+        padding: var(--spacing-md);
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-md);
+    }
+
+    .filter-controls {
+        flex-direction: column;
+    }
+
+    .table-responsive {
+        margin: 0 calc(-1 * var(--spacing-md));
+        border-radius: 0;
+    }
+
+    .transactions-table th,
+    .transactions-table td {
+        padding: var(--spacing-sm);
+        font-size: 0.875rem;
+    }
+
+    .transaction-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 토스트 알림 스타일 */
+.toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 9999;
+}
+
+.toast {
+    margin-bottom: 10px;
+    padding: 16px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 300px;
+    max-width: 400px;
+    animation: slideIn 0.3s ease-out;
+    border-width: 1px;
+    border-style: solid;
+    font-weight: 500;
+}
+
+/* 라이트 모드 토스트 스타일 */
+:root[data-theme="light"] .toast {
+    background-color: rgba(255, 255, 255, 0.95);
+    color: #1a1a1a;
+}
+
+:root[data-theme="light"] .toast.success {
+    border-color: rgba(52, 211, 153, 0.4);
+    background-color: rgba(52, 211, 153, 0.1);
+}
+
+:root[data-theme="light"] .toast.error {
+    border-color: rgba(248, 113, 113, 0.4);
+    background-color: rgba(248, 113, 113, 0.1);
+}
+
+:root[data-theme="light"] .toast.info {
+    border-color: rgba(59, 130, 246, 0.4);
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* 다크 모드 토스트 스타일 */
+:root[data-theme="dark"] .toast {
+    background-color: rgba(17, 24, 39, 0.95);
+    color: #ffffff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="dark"] .toast.success {
+    border-color: #34d399;
+    background-color: rgba(6, 78, 59, 0.9);
+}
+
+:root[data-theme="dark"] .toast.error {
+    border-color: #f87171;
+    background-color: rgba(127, 29, 29, 0.9);
+}
+
+:root[data-theme="dark"] .toast.info {
+    border-color: #60a5fa;
+    background-color: rgba(30, 58, 138, 0.9);
+}
+
+/* 아이콘 색상 다크모드 대응 */
+:root[data-theme="dark"] .toast.success .toast-icon {
+    color: #34d399;
+}
+
+:root[data-theme="dark"] .toast.error .toast-icon {
+    color: #f87171;
+}
+
+:root[data-theme="dark"] .toast.info .toast-icon {
+    color: #60a5fa;
+}
+
+.toast-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.toast-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 1rem;
+}
+
+.toast-message {
+    font-size: 0.925rem;
+    opacity: 0.95;
+    line-height: 1.4;
+}
+
+.toast-close {
+    padding: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    color: currentColor;
+}
+
+.toast-close:hover {
+    opacity: 1;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.toast.hiding {
+    animation: slideOut 0.3s ease-in forwards;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const typeFilter = document.getElementById('typeFilter');
+    const periodFilter = document.getElementById('periodFilter');
+    const rows = document.querySelectorAll('.transaction-row');
+
+    function filterTransactions() {
+        const selectedType = typeFilter.value;
+        const selectedPeriod = periodFilter.value;
+        const now = new Date();
+
+        rows.forEach(row => {
+            const type = row.dataset.type;
+            const timestamp = new Date(row.dataset.timestamp + ' UTC+9');
+            let showByType = true;
+            let showByPeriod = true;
+
+            // 거래 유형 필터
+            if (selectedType !== 'all') {
+                showByType = type === selectedType;
+            }
+
+            // 기간 필터
+            if (selectedPeriod !== 'all') {
+                const timeDiff = now - timestamp;
+                const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
+
+                switch (selectedPeriod) {
+                    case 'today':
+                        showByPeriod = daysDiff < 1;
+                        break;
+                    case 'week':
+                        showByPeriod = daysDiff < 7;
+                        break;
+                    case 'month':
+                        showByPeriod = daysDiff < 30;
+                        break;
+                    case '3months':
+                        showByPeriod = daysDiff < 90;
+                        break;
+                }
+            }
+
+            row.style.display = showByType && showByPeriod ? '' : 'none';
+        });
+
+        updateStats();
+    }
+
+    function updateStats() {
+        const visibleRows = Array.from(rows).filter(row => row.style.display !== 'none');
+        const buyRows = visibleRows.filter(row => row.dataset.type === 'BUY');
+        const sellRows = visibleRows.filter(row => row.dataset.type === 'SELL');
+        
+        // 통계 업데이트
+        document.querySelector('.stat-card:nth-child(1) .stat-value').textContent = 
+            visibleRows.length + '회';
+        document.querySelector('.stat-card:nth-child(2) .stat-value').textContent = 
+            buyRows.length + '회';
+        document.querySelector('.stat-card:nth-child(3) .stat-value').textContent = 
+            sellRows.length + '회';
+    }
+
+    typeFilter.addEventListener('change', filterTransactions);
+    periodFilter.addEventListener('change', filterTransactions);
+});
+
+// 토스트 알림 함수
+function showToast(type, title, message, duration = 3000) {
+    const toastContainer = document.querySelector('.toast-container') || createToastContainer();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    let iconClass = {
+        success: 'fas fa-check-circle',
+        error: 'fas fa-exclamation-circle',
+        info: 'fas fa-info-circle'
+    }[type];
+    
+    toast.innerHTML = `
+        <i class="toast-icon ${iconClass}"></i>
+        <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    // 닫기 버튼 이벤트
+    toast.querySelector('.toast-close').addEventListener('click', () => {
+        hideToast(toast);
+    });
+    
+    // 자동 제거
+    setTimeout(() => {
+        hideToast(toast);
+    }, duration);
+}
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+    return container;
+}
+
+function hideToast(toast) {
+    toast.classList.add('hiding');
+    toast.addEventListener('animationend', () => {
+        toast.remove();
+    });
+}
+</script>
+{% endblock %} 
