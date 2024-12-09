@@ -1,0 +1,233 @@
+{% extends "base.html" %} {% block title %}리더보드 - 주식 게임{% endblock %} {%
+block extra_js %}
+<script
+  type="module"
+  src="{{ url_for('static', filename='js/common/socket.js') }}"
+></script>
+<script
+  type="module"
+  src="{{ url_for('static', filename='js/common/formatters.js') }}"
+></script>
+<script
+  type="module"
+  src="{{ url_for('static', filename='js/leaderboard.js') }}"
+></script>
+{% endblock %} {% block content %}
+<div
+  class="leaderboard-container"
+  data-username="{{ current_user.username if current_user.is_authenticated else '' }}"
+>
+  <section class="leaderboard-section">
+    <div class="section-header">
+      <h2 class="section-title">실시간 투자왕 순위</h2>
+      <p class="section-description">
+        {% if total_users %} 현재 {{ "{:,}".format(total_users) }}명의
+        투자자들과 경쟁 중입니다 {% else %} 전체 사용자의 수익률 순위를
+        확인하세요 {% endif %}
+      </p>
+    </div>
+
+    {% if leaderboard %}
+    <div class="table-responsive">
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th class="rank-column">순위</th>
+            <th class="user-column">투자자</th>
+            <th class="assets-column">총 자산</th>
+            <th class="return-column">수익률</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboardTableBody">
+          {% for entry in leaderboard %}
+          <tr
+            class="leaderboard-row {% if current_user.is_authenticated and current_user.username == entry.username %}highlight{% endif %}"
+          >
+            <td class="rank">
+              {% if entry.rank <= 3 %}
+              <span class="rank-badge rank-{{ entry.rank }}"
+                >{{ entry.rank }}</span
+              >
+              {% else %}
+              <span class="rank-number">#{{ entry.rank }}</span>
+              {% endif %}
+            </td>
+            <td class="username">
+              {{ entry.username }} {% if current_user.is_authenticated and
+              current_user.username == entry.username %}
+              <span class="user-badge">(나)</span>
+              {% endif %}
+            </td>
+            <td class="total-assets">
+              {{ "{:,.0f}".format(entry.total_assets) }}원
+            </td>
+            <td
+              class="return-rate {% if entry.return_rate >= 0 %}positive{% else %}negative{% endif %}"
+            >
+              {{ "{:+.2f}".format(entry.return_rate) }}%
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>아직 등록된 투자자가 없습니다. 첫 번째 투자자가 되어보세요!</p>
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+<style>
+  .leaderboard-container {
+    padding: var(--spacing-lg) var(--spacing-xl);
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-xl) 0;
+  }
+
+  .section-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .section-description {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+  }
+
+  .table-responsive {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+  }
+
+  .leaderboard-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .leaderboard-table th {
+    background-color: var(--card-bg-secondary);
+    color: var(--text-secondary);
+    font-weight: 600;
+    padding: var(--spacing-lg);
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+  }
+
+  .leaderboard-table td {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 1.1rem;
+  }
+
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .rank-1 {
+    background: linear-gradient(135deg, #ffd700, #ffa500);
+    color: #000;
+  }
+
+  .rank-2 {
+    background: linear-gradient(135deg, #e0e0e0, #b0b0b0);
+    color: #000;
+  }
+
+  .rank-3 {
+    background: linear-gradient(135deg, #cd7f32, #8b4513);
+    color: #fff;
+  }
+
+  .leaderboard-row {
+    transition: all 0.2s ease;
+  }
+
+  .leaderboard-row:hover {
+    background-color: var(--card-bg-hover);
+    transform: translateX(5px);
+  }
+
+  .leaderboard-row.highlight {
+    background-color: rgba(var(--primary-color-rgb), 0.1);
+  }
+
+  .username {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .return-rate {
+    font-weight: 700;
+  }
+
+  .return-rate.positive {
+    color: var(--up-color);
+  }
+
+  .return-rate.negative {
+    color: var(--down-color);
+  }
+
+  .total-assets {
+    font-family: "Roboto Mono", monospace;
+    font-weight: 500;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    background-color: var(--card-bg-secondary);
+    border-radius: var(--border-radius-lg);
+    margin: var(--spacing-xl) 0;
+  }
+
+  .empty-state p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+  }
+
+  @media (max-width: 768px) {
+    .leaderboard-container {
+      padding: var(--spacing-md);
+    }
+
+    .section-title {
+      font-size: 2rem;
+    }
+
+    .leaderboard-table th,
+    .leaderboard-table td {
+      padding: var(--spacing-md);
+      font-size: 0.95rem;
+    }
+
+    .rank-badge {
+      width: 28px;
+      height: 28px;
+      font-size: 0.9rem;
+    }
+  }
+</style>
+{% endblock %}
