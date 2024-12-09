@@ -1,0 +1,108 @@
+{% extends "base.html" %} {% block title %}홈 - 주식 게임{% endblock %} {% block
+extra_css %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/home.css') }}"
+/>
+{% endblock %} {% block content %}
+<div class="home-container">
+  <!-- 히어로 섹션 -->
+  <section class="hero-section">
+    <div class="hero-content">
+      <h1>실시간 주식 모의투자</h1>
+      <p>실제 주식 데이터로 투자 경험을 쌓아보세요</p>
+      {% if not current_user.is_authenticated %}
+      <div class="hero-buttons">
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary"
+          >시작하기</a
+        >
+        <a href="{{ url_for('auth.login') }}" class="btn btn-secondary"
+          >로그인</a
+        >
+      </div>
+      {% else %}
+      <div class="hero-buttons">
+        <a href="{{ url_for('main.market') }}" class="btn btn-primary"
+          >거래하기</a
+        >
+        <a href="{{ url_for('main.portfolio') }}" class="btn btn-secondary"
+          >포트폴리오</a
+        >
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- 시장 현황 섹션 -->
+  <section class="market-section">
+    <div class="market-header">
+      <h2>시장 현황</h2>
+      <div class="market-time" id="current-time"></div>
+    </div>
+    <div class="market-stats">
+      <div class="stat-box">
+        <span class="stat-label">시가총액</span>
+        <span class="stat-value" id="total-market-cap">-</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">상승/하락</span>
+        <div class="trend-box">
+          <span class="up"><span id="up-stocks">-</span></span>
+          <span class="down"><span id="down-stocks">-</span></span>
+        </div>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">참여자</span>
+        <span class="stat-value" id="total-users">-</span>
+      </div>
+    </div>
+    <div class="stock-lists">
+      <div class="stock-column">
+        <h3>급등</h3>
+        <div class="stock-list" id="top-gainers"></div>
+      </div>
+      <div class="stock-column">
+        <h3>급락</h3>
+        <div class="stock-list" id="top-losers"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 특징 섹션 -->
+  <section class="features-section">
+    <div class="features-grid">
+      <div class="feature-card">
+        <i class="fas fa-chart-line"></i>
+        <h3>실시간 시세</h3>
+        <p>
+          실시간으로 업데이트되는 주가 정보로 현실감 있는 투자를 경험하세요.
+        </p>
+      </div>
+      <div class="feature-card">
+        <i class="fas fa-robot"></i>
+        <h3>AI 챗봇</h3>
+        <p>AI 챗봇이 투자 전략과 시장 분석을 도와드립니다.</p>
+      </div>
+      <div class="feature-card">
+        <i class="fas fa-trophy"></i>
+        <h3>실시간 랭킹</h3>
+        <p>다른 투자자들과 수익률을 비교하며 경쟁해보세요.</p>
+      </div>
+      <div class="feature-card">
+        <i class="fas fa-bell"></i>
+        <h3>알림 서비스</h3>
+        <p>관심 있는 종목의 가격 변동을 실시간으로 알려드립니다.</p>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %} {% block extra_js %}
+<script
+  type="module"
+  src="{{ url_for('static', filename='js/common/socket.js') }}"
+></script>
+<script
+  type="module"
+  src="{{ url_for('static', filename='js/home.js') }}"
+></script>
+{% endblock %}
