@@ -1,0 +1,780 @@
+{% extends "base.html" %}
+
+{% block title %}AI 투자 어시스턴트 - 주식 게임{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="chat-grid">
+        <!-- 채팅 영역 -->
+        <section class="chat-section">
+            <div class="chat-header">
+                <h2 class="section-title">AI 투자 어시스턴트</h2>
+                <p class="section-subtitle">투자 관련 질문을 자유롭게 해보세요</p>
+                <div class="personality-controls">
+                    <button class="personality-btn" data-personality="positive">긍정적 모드</button>
+                    <button class="personality-btn" data-personality="neutral">중립적 모드</button>
+                    <button class="personality-btn" data-personality="negative">부정적 모드</button>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <!-- 시스템 메시지 -->
+                <div class="message system">
+                    <div class="message-content">
+                        안녕하세요! 저는 당신의 투자를 도와줄 AI 어시스턴트입니다. 
+                        주식 시장 분석, 투자 전략, 포트폴리오 관리 등에 대해 물어보세요.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-input">
+                <form id="chatForm" class="chat-form" onsubmit="return false;">
+                    <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." required>
+                    <button type="button" onclick="sendMessage()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- 포트폴리오 요약 -->
+        <section class="portfolio-summary">
+            <h3>내 포트폴리오 요약</h3>
+            <div id="portfolioSummary" class="summary-content">
+                <div class="summary-item">
+                    <span class="label">총 자산:</span>
+                    <span class="value" id="totalAssets">{{ "{:,}".format(total_assets) }}원</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">투자 금액:</span>
+                    <span class="value" id="investedAmount">{{ "{:,}".format(invested_amount) }}원</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">현금:</span>
+                    <span class="value" id="cashAmount">{{ "{:,}".format(cash) }}원</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">수익률:</span>
+                    <span class="value" id="returnRate" class="{{ 'positive' if total_return_rate >= 0 else 'negative' }}">
+                        {{ '+' if total_return_rate >= 0 else '' }}{{ "{:.2f}".format(total_return_rate) }}%
+                    </span>
+                </div>
+            </div>
+
+            <!-- 보유 주식 정보 -->
+            <div class="holdings-section">
+                <h3 class="holdings-title">보유 주식 정보</h3>
+                {% if holdings %}
+                <div class="holdings-table">
+                    <div class="holdings-header">
+                        <div class="col">종목명</div>
+                        <div class="col">보유수량</div>
+                        <div class="col">평균단가</div>
+                        <div class="col">현재가</div>
+                        <div class="col">평가손익</div>
+                        <div class="col">수익률</div>
+                    </div>
+                    <div class="holdings-body">
+                        {% for holding in holdings %}
+                        <div class="holding-item">
+                            <div class="col">{{ holding.stock_name }}</div>
+                            <div class="col">{{ "{:,}".format(holding.quantity) }}주</div>
+                            <div class="col">{{ "{:,.0f}".format(holding.avg_price) }}원</div>
+                            <div class="col">{{ "{:,.0f}".format(holding.current_price) }}원</div>
+                            <div class="col {% if holding.profit_loss > 0 %}positive{% elif holding.profit_loss < 0 %}negative{% endif %}">
+                                {{ "{:+,.0f}".format(holding.profit_loss) }}원
+                            </div>
+                            <div class="col {% if holding.return_rate > 0 %}positive{% elif holding.return_rate < 0 %}negative{% endif %}">
+                                {{ "{:+.2f}".format(holding.return_rate) }}%
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty-holdings">
+                    <p>보유중인 주식이 없습니다.</p>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</div>
+
+<style>
+.chat-container {
+    padding: var(--spacing-lg) var(--spacing-xl);
+    min-height: calc(100vh - 60px);
+    max-width: 2400px;
+    margin: 0 auto;
+}
+
+.chat-grid {
+    display: grid;
+    grid-template-columns: minmax(1200px, 2fr) 700px;
+    gap: var(--spacing-xl);
+}
+
+/* 채팅 섹션 */
+.chat-section {
+    min-width: 1200px;
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--card-shadow);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 120px);
+}
+
+.chat-header {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.section-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.chat-messages {
+    padding: var(--spacing-xl);
+    gap: var(--spacing-lg);
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.message {
+    max-width: 850px;
+    margin: 0.5rem 0;
+}
+
+.message.user {
+    align-self: flex-end;
+}
+
+.message.assistant {
+    align-self: flex-start;
+}
+
+.message.system {
+    align-self: center;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    background-color: var(--bg-secondary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius-lg);
+    margin: var(--spacing-md) 0;
+}
+
+.message-content {
+    padding: var(--spacing-lg);
+    border-radius: 20px;
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+.message.assistant .message-content {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border-top-left-radius: 4px;
+}
+
+.message-time {
+    font-size: 0.8rem;
+    margin: 0.3rem 0.5rem;
+    opacity: 0.7;
+}
+
+.chat-input {
+    padding: var(--spacing-lg) var(--spacing-xl);
+    background-color: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+}
+
+.chat-form {
+    display: flex;
+    gap: var(--spacing-md);
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.chat-form input {
+    flex: 1;
+    height: 54px;
+    font-size: 1.1rem;
+    padding: 0 var(--spacing-xl);
+    border: 2px solid var(--border-color);
+    border-radius: 27px;
+    background-color: var(--bg-primary);
+    transition: all 0.2s ease;
+}
+
+.chat-form input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.1);
+}
+
+.chat-form button {
+    width: 54px;
+    height: 54px;
+    border-radius: 27px;
+    background-color: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.chat-form button:hover {
+    background-color: var(--primary-color-dark);
+    transform: translateY(-2px);
+}
+
+.chat-form button i {
+    font-size: 1.2rem;
+}
+
+/* 포트폴리오 요약 */
+.portfolio-summary {
+    background: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--card-shadow);
+}
+
+.portfolio-summary h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-lg);
+    color: var(--text-primary);
+}
+
+.summary-content {
+    display: grid;
+    gap: var(--spacing-sm);
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.summary-item:last-child {
+    border-bottom: none;
+}
+
+.summary-item .label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.summary-item .value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.summary-item .value.positive {
+    color: var(--up-color);
+}
+
+.summary-item .value.negative {
+    color: var(--down-color);
+}
+
+.holdings-list {
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+}
+
+.holdings-list h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.holdings {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.holding-item {
+    display: grid;
+    grid-template-columns: 2.5fr 1.2fr 1.8fr 1.8fr 1.8fr 1.5fr;
+    gap: 12px;
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.holding-item:last-child {
+    border-bottom: none;
+}
+
+.holding-item:hover {
+    background-color: var(--card-bg-hover);
+}
+
+.holding-item .col {
+    display: flex;
+    align-items: center;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.holding-item .col:nth-child(n+3) {
+    justify-content: flex-end;
+}
+
+.holding-item .positive {
+    color: var(--up-color);
+    font-weight: 600;
+}
+
+.holding-item .negative {
+    color: var(--down-color);
+    font-weight: 600;
+}
+
+.empty-holdings {
+    text-align: center;
+    padding: 30px;
+    color: var(--secondary-text);
+    background: var(--form-bg);
+    border-radius: 8px;
+}
+
+/* 스크롤바 스타일 */
+.holdings-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.holdings-body::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+.holdings-body::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.holdings-body::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* 보유 주식 테이블 스타일 */
+.holdings-section {
+    background: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+}
+
+.holdings-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.holdings-table {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.holdings-header {
+    display: grid;
+    grid-template-columns: 2.5fr 1.2fr 1.8fr 1.8fr 1.8fr 1.5fr;
+    gap: 12px;
+    padding: 15px;
+    background: var(--card-bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.holdings-body {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.holding-item {
+    display: grid;
+    grid-template-columns: 2.5fr 1.2fr 1.8fr 1.8fr 1.8fr 1.5fr;
+    gap: 12px;
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.holding-item:last-child {
+    border-bottom: none;
+}
+
+.holding-item:hover {
+    background-color: var(--card-bg-hover);
+}
+
+.holding-item .col {
+    display: flex;
+    align-items: center;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+/* 금액 컬럼 우측 정렬 */
+.holding-item .col:nth-child(n+3) {
+    justify-content: flex-end;
+}
+
+/* 등락률 색상 */
+.holding-item .positive {
+    color: #d24f45;  /* 상승 빨간색 */
+    font-weight: 600;
+}
+
+.holding-item .negative {
+    color: #1261c4;  /* 하락 파란색 */
+    font-weight: 600;
+}
+
+/* 보유수량 스타일 */
+.holding-item .col:nth-child(2) {
+    color: var(--text-secondary);
+}
+
+/* 평균단가, 현재가 스타일 */
+.holding-item .col:nth-child(3),
+.holding-item .col:nth-child(4) {
+    font-weight: 500;
+}
+
+/* 평가손익, 수익률 스타일 */
+.holding-item .col:nth-child(5),
+.holding-item .col:nth-child(6) {
+    font-weight: 600;
+}
+
+/* 빈 상태 스타일 */
+.empty-holdings {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+    background: var(--card-bg-secondary);
+    border-radius: 8px;
+    margin-top: var(--spacing-md);
+}
+
+/* 챗봇 관련 새로운 스타일 추가 */
+.personality-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 0 var(--spacing-lg);
+}
+
+.personality-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.personality-btn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+.personality-btn.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.message.bot {
+    align-self: flex-start;
+}
+
+.message.user {
+    align-self: flex-end;
+}
+
+.message.system {
+    align-self: center;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    background-color: var(--bg-secondary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius-lg);
+    margin: var(--spacing-md) 0;
+}
+</style>
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 이미 초기화된 소켓이 있다면 재사용
+    if (window.aiChatSocket) {
+        return;
+    }
+
+    const socket = io({
+        transports: ['websocket'],
+        upgrade: false,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
+    });
+    
+    // 전용 소켓 객체로 저장 (window.socket이 아닌 별도의 이름 사용)
+    window.aiChatSocket = socket;
+    
+    const chatMessages = document.getElementById('chatMessages');
+    const chatForm = document.getElementById('chatForm');
+    const messageInput = document.getElementById('messageInput');
+    const personalityBtns = document.querySelectorAll('.personality-btn');
+    
+    // 숫자 포맷팅 함수
+    function formatNumber(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    // 포트폴리오 업데이트 함수
+    function updatePortfolioSummary(data) {
+        const totalAssets = document.getElementById('totalAssets');
+        const investedAmount = document.getElementById('investedAmount');
+        const cashAmount = document.getElementById('cashAmount');
+        const returnRate = document.getElementById('returnRate');
+
+        if (data.total_assets !== undefined) {
+            totalAssets.textContent = `${formatNumber(data.total_assets)}원`;
+        }
+        if (data.invested_amount !== undefined) {
+            investedAmount.textContent = `${formatNumber(data.invested_amount)}원`;
+        }
+        if (data.cash !== undefined) {
+            cashAmount.textContent = `${formatNumber(data.cash)}원`;
+        }
+        if (data.total_return_rate !== undefined) {
+            const rate = data.total_return_rate;
+            returnRate.textContent = `${rate >= 0 ? '+' : ''}${rate.toFixed(2)}%`;
+            returnRate.className = `value ${rate >= 0 ? 'positive' : 'negative'}`;
+        }
+    }
+
+    // 보유 주식 업데이트 함수
+    function updateHoldings(holdings) {
+        const holdingsSection = document.querySelector('.holdings-section');
+        if (!holdingsSection) return;
+
+        if (!holdings || holdings.length === 0) {
+            holdingsSection.innerHTML = `
+                <h3 class="holdings-title">보유 주식 정보</h3>
+                <div class="empty-holdings">
+                    <p>보유중인 주식이 없습니다.</p>
+                </div>
+            `;
+            return;
+        }
+
+        const holdingsHTML = `
+            <h3 class="holdings-title">보유 주식 정보</h3>
+            <div class="holdings-table">
+                <div class="holdings-header">
+                    <div class="col">종목명</div>
+                    <div class="col">보유수량</div>
+                    <div class="col">평균단가</div>
+                    <div class="col">현재가</div>
+                    <div class="col">평가손익</div>
+                    <div class="col">수익률</div>
+                </div>
+                <div class="holdings-body">
+                    ${holdings.map(holding => `
+                        <div class="holding-item">
+                            <div class="col">${holding.stock_name}</div>
+                            <div class="col">${formatNumber(holding.quantity)}주</div>
+                            <div class="col">${formatNumber(holding.avg_price)}원</div>
+                            <div class="col">${formatNumber(holding.current_price)}원</div>
+                            <div class="col ${holding.profit_loss >= 0 ? 'positive' : 'negative'}">
+                                ${holding.profit_loss >= 0 ? '+' : ''}${formatNumber(holding.profit_loss)}원
+                            </div>
+                            <div class="col ${holding.return_rate >= 0 ? 'positive' : 'negative'}">
+                                ${holding.return_rate >= 0 ? '+' : ''}${holding.return_rate.toFixed(2)}%
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        holdingsSection.innerHTML = holdingsHTML;
+    }
+
+    // 연결 상태 모니터링
+    socket.on('connect', () => {
+        console.log('Socket connected successfully');
+        socket.emit('request_market_data');
+        addMessage('서버에 연결되었습니다.', 'system');
+    });
+
+    socket.on('connect_error', (error) => {
+        console.error('Socket connection error:', error);
+        addMessage('서버 연결에 실패했습니다.', 'system');
+    });
+
+    socket.on('disconnect', (reason) => {
+        console.log('Socket disconnected:', reason);
+        addMessage('서버와의 연결이 끊어졌습니다.', 'system');
+    });
+
+    socket.on('market_data', (data) => {
+        console.log('Received market data:', data);
+        if (data.holdings) {
+            updateHoldings(data.holdings);
+
+            const totalStockValue = data.holdings.reduce((sum, holding) => sum + holding.total_value, 0);
+            const totalInvested = data.holdings.reduce((sum, holding) => sum + (holding.avg_price * holding.quantity), 0);
+            
+            const currentCash = parseFloat(document.getElementById('cashAmount').textContent.replace(/[^0-9.-]/g, '')) || 0;
+            
+            const totalAssets = totalStockValue + currentCash;
+            const returnRate = ((totalAssets - 10000000) / 10000000) * 100;
+            
+            updatePortfolioSummary({
+                total_assets: totalAssets,
+                invested_amount: totalInvested,
+                cash: currentCash,
+                total_return_rate: returnRate
+            });
+        }
+    });
+
+    socket.on('trade_success', (data) => {
+        console.log('Trade success:', data);
+        if (data.holdings) {
+            updateHoldings(data.holdings);
+
+            const totalStockValue = data.holdings.reduce((sum, holding) => sum + holding.total_value, 0);
+            const totalInvested = data.holdings.reduce((sum, holding) => sum + (holding.avg_price * holding.quantity), 0);
+            
+            const totalAssets = totalStockValue + data.cash;
+            const returnRate = ((totalAssets - 10000000) / 10000000) * 100;
+            
+            updatePortfolioSummary({
+                total_assets: totalAssets,
+                invested_amount: totalInvested,
+                cash: data.cash,
+                total_return_rate: returnRate
+            });
+        }
+    });
+
+    socket.on('user_update', (data) => {
+        console.log('Received user update:', data);
+        updatePortfolioSummary(data);
+    });
+
+    // 메시지 추가 함수 추가
+    function addMessage(message, type) {
+        console.log(`Adding message: ${message} (${type})`);  // 디버깅용
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        contentDiv.textContent = message;
+        
+        messageDiv.appendChild(contentDiv);
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // 소켓 이벤트 리스너
+    socket.on('bot_response', function(data) {
+        console.log('Received bot response:', data);  // 디버깅용
+        if (data.success) {
+            addMessage(data.response, data.type || 'assistant');
+            if (data.personality) {
+                personalityBtns.forEach(btn => {
+                    btn.classList.toggle('active', 
+                        btn.dataset.personality === data.personality);
+                });
+            }
+        } else if (data.message) {  // 이전 형식 지원
+            addMessage(data.message, 'assistant');
+            if (data.personality) {
+                personalityBtns.forEach(btn => {
+                    btn.classList.toggle('active', 
+                        btn.dataset.personality === data.personality);
+                });
+            }
+        } else {
+            addMessage(data.error || '오류가 발생했습니다.', 'system');
+        }
+    });
+
+    socket.on('error', function(data) {
+        console.log('Received error:', data);  // 디버깅용
+        if (typeof data === 'string') {
+            addMessage(data, 'system');
+        } else {
+            addMessage(data.error || '오류가 발생했습니다.', 'system');
+        }
+    });
+
+    // sendMessage 함수 수정
+    window.sendMessage = function() {
+        const message = messageInput.value.trim();
+        if (message) {
+            console.log(`Sending message: ${message}`);
+            addMessage(message, 'user');
+            messageInput.value = '';
+            window.aiChatSocket.emit('message', { message: message });
+        }
+    };
+
+    // Enter 키 이벤트 처리
+    messageInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();  // Enter 키의 기본 동작 방지
+            sendMessage();
+        }
+    });
+
+    // 성격 변경 버튼 이벤트 리스너 추가
+    document.querySelectorAll('.personality-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const personality = this.dataset.personality;
+            window.aiChatSocket.emit('message', {
+                message: `성격변경 ${personality}`
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 
