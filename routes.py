@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
 from flask_login import login_required, current_user
-from models import StockHolding, Transaction
+from models import StockHolding, Transaction, User
 
 main = Blueprint('main', __name__)
 
@@ -36,7 +36,6 @@ def calculate_portfolio_data(user):
                 print(f"Error processing holding {holding.id}: {str(e)}")
                 continue
 
-        # 총 수익 계산
         total_return_rate = ((total_assets - 10000000) / 10000000) * 100 if total_assets > 0 else 0
 
         return {
@@ -105,3 +104,37 @@ def transactions():
     transactions = Transaction.query.filter_by(user_id=current_user.id).order_by(Transaction.timestamp.desc()).all()
     total_amount = sum(tx.total_amount for tx in transactions)
     return render_template('transactions.html', transactions=transactions, total_amount=total_amount)
+
+@main.route('/leaderboard')
+def leaderboard():
+    users = User.query.all()
+    total_users = len(users)
+    leaderboard_data = []
+
+    for user in users:
+        try:
+            total_assets = user.cash if user.cash is not None else 0
+            holdings = StockHolding.query.filter_by(user_id=user.id).all()
+            for holding in holdings:
+                if holding.current_value is not None:
+                    total_assets += holding.current_value
+            return_rate = ((total_assets - 10000000) / 10000000) * 100 if total_assets > 0 else 0
+            leaderboard_data.append({
+                'username': user.username or '익명',
+                'total_assets': total_assets,
+                'return_rate': return_rate
+            })
+        except Exception as e:
+            print(f"Error processing user {user.id}: {str(e)}")
+            continue
+
+    leaderboard_data.sort(key=lambda x: x['total_assets'], reverse=True)
+    for i, data in enumerate(leaderboard_data):
+        data['rank'] = i + 1
+
+    return render_template('leaderboard.html', leaderboard=leaderboard_data, total_users=total_users)
+
+@main.route('/notifications')
+@login_required
+def notifications():
+    return render_template('notifications.html')
