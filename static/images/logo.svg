@@ -1,0 +1,4 @@
+<svg width="120" height="40" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10 30L20 10L30 25L40 15" stroke="currentColor" stroke-width="2"/>
+    <text x="50" y="25" fill="currentColor" font-family="Arial" font-size="16" font-weight="bold">StockSim</text>
+</svg> 
