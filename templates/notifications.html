@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}알림 - 주식 게임{% endblock %}
+
+{% block content %}
+<div class="notifications-container">
+    <div class="container">
+        <section class="notifications-section">
+            <div class="section-header">
+                <h2 class="section-title">알림</h2>
+                <p class="section-description">중요한 알림을 확인하세요.</p>
+            </div>
+
+            {% if notifications %}
+            <div class="notifications-list">
+                {% for notification in notifications %}
+                <div class="notification-item {% if not notification.read %}unread{% endif %}">
+                    <div class="notification-icon">
+                        {% if notification.type == 'price_alert' %}
+                        <i class="fas fa-chart-line"></i>
+                        {% elif notification.type == 'system' %}
+                        <i class="fas fa-bell"></i>
+                        {% elif notification.type == 'trade' %}
+                        <i class="fas fa-exchange-alt"></i>
+                        {% endif %}
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-message">{{ notification.message }}</div>
+                        <div class="notification-time">{{ notification.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>새로운 알림이 없습니다.</p>
+            </div>
+            {% endif %}
+        </section>
+    </div>
+</div>
+
+<style>
+.notifications-container {
+    padding: var(--spacing-lg) 0;
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.section-title {
+    font-size: 1.75rem;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.section-description {
+    color: var(--text-secondary);
+}
+
+.notifications-list {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease;
+}
+
+.notification-item:hover {
+    transform: translateY(-2px);
+}
+
+.notification-item.unread {
+    background-color: var(--primary-color-light);
+}
+
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--primary-color-light);
+    border-radius: 50%;
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-message {
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+    line-height: 1.5;
+}
+
+.notification-time {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--card-shadow);
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .notifications-container {
+        padding: var(--spacing-md);
+    }
+
+    .notification-item {
+        padding: var(--spacing-md);
+    }
+
+    .notification-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+}
+</style>
+{% endblock %} 
