@@ -6,8 +6,10 @@
 
 • 프로젝트 시작일: 9월 20일
 
-![image](https://github.com/user-attachments/assets/8a0cf539-358e-4cae-8c4e-6854e85f61a7)
+![스크린샷 2024-12-10 오전 8 55 35](https://github.com/user-attachments/assets/8ade2774-0976-4df0-9239-e3d5184e140c)
 
+
+![스크린샷 2024-12-10 오전 8 55 07](https://github.com/user-attachments/assets/2f71b043-c404-4bd2-9e35-731253e8bcfd)
 
 
 ![KakaoTalk_Photo_2024-12-09-18-08-46](https://github.com/user-attachments/assets/ace375b0-56f2-45d7-a14f-32a3203d62dc)
