@@ -1,0 +1,42 @@
+{% extends "base.html" %} {% block title %}AI 투자 상담 - StockSim{% endblock %}
+{% block extra_css %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/chat.css') }}"
+/>
+{% endblock %} {% block content %}
+<div class="chat-container">
+  <div class="chat-header">
+    <h2>AI 투자 상담</h2>
+    <p>투자에 대해 궁금한 점을 물어보세요</p>
+  </div>
+
+  <div class="chat-messages" id="chatMessages">
+    <!-- 초기 메시지 -->
+    <div class="message bot">
+      <div class="message-content">
+        <p>안녕하세요! 투자에 대해 어떤 것이든 물어보세요.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-input">
+    <form id="chatForm" class="input-form">
+      <input
+        type="text"
+        id="messageInput"
+        placeholder="메시지를 입력하세요..."
+        autocomplete="off"
+      />
+      <button type="submit">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script
+  type="module"
+  src="{{ url_for('static', filename='js/chat.js') }}"
+></script>
+{% endblock %}
